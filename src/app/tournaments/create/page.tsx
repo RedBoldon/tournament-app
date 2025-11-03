@@ -17,7 +17,7 @@ export default function CreateTournamentPage() {
     }
   }, [loading, isAdmin, router]);
 
-  if (loading) return <p className="p-8">Loading...</p>;
+  if (loading) return <p>Loading...</p>;
   if (!isAdmin) return null;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -39,9 +39,9 @@ export default function CreateTournamentPage() {
     });
 
     if (res.ok) {
-      const data = await res.json();
-      router.push(`/tournaments/detail?id=${data.id}`);
-    } else {
+  const data = await res.json();
+  router.push(`/tournaments/detail?id=${data.id}`);
+} else {
       const error = await res.json();
       setErrors(error.errors || { _errors: ['Server error'] });
     }
