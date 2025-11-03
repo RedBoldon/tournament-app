@@ -28,15 +28,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
-        setUser(session?.user ?? null);
+        setUser(session?.user || null);
         setLoading(false);
       }
     );
 
+    // Refresh user with metadata
+    supabaseClient.auth.getUser().then(({ data: { user } }) => {
+      setUser(user || null);
+      setLoading(false);
+    });
+
     supabaseClient.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

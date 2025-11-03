@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/prisma';
 import TournamentActions from '@/components/TournamentActions';
 import TournamentRealtime from '@/components/TournamentRealtime';
+import { supabaseServer } from '@/lib/supabase/server';
 
 export const revalidate = 0;
 
@@ -25,8 +26,12 @@ export default async function TournamentPage({
 
   if (!tournament) return <p className="p-8">Tournament not found</p>;
 
-  // FIXED: Only one declaration
-  const playerList = tournament.players.map((tp) => ({
+  // GET CURRENT USER
+  const supabase = await supabaseServer();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isAdmin = user?.user_metadata?.role === 'admin';
+
+  const initialPlayers = tournament.players.map((tp) => ({
     playerId: tp.player.id,
   }));
 
@@ -38,12 +43,12 @@ export default async function TournamentPage({
       <p className="text-lg">Admin: <strong>{tournament.admin.email}</strong></p>
 
       <h2 className="text-xl font-semibold mt-8 mb-4">
-        Players ({playerList.length})
+        Players ({initialPlayers.length})
       </h2>
 
-      <TournamentRealtime initialPlayers={playerList} tournamentId={id} />
+      <TournamentRealtime initialPlayers={initialPlayers} tournamentId={id} />
 
-      <TournamentActions tournament={tournament} isAdmin={false} />
+      <TournamentActions tournament={tournament} isAdmin={isAdmin} />
     </div>
   );
 }
