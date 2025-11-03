@@ -7,5 +7,6 @@ export async function POST(req: NextRequest) {
 
   const result = await joinTournament(tournamentId, playerId);
 
-  return Response.json(result);
+  // FIXED: Always return JSON
+  return Response.json(result || { success: true });
 }

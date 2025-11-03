@@ -2,11 +2,12 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
+import { supabaseServer } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-/* ---------- START TOURNAMENT (unchanged) ---------- */
+/* ---------- START TOURNAMENT ---------- */
 export async function startTournament(tournamentId: string) {
-  const supabase = await import('@/lib/supabase/server').then(m => m.supabaseServer)();
+  const supabase = await supabaseServer();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user || user.user_metadata?.role !== 'admin') {
@@ -21,7 +22,8 @@ export async function startTournament(tournamentId: string) {
   revalidatePath(`/tournaments/detail?id=${tournamentId}`);
 }
 
-/* ---------- JOIN TOURNAMENT (secure server-side) ---------- */
+/* ---------- JOIN TOURNAMENT ---------- */
+// src/actions/tournamentActions.ts
 export async function joinTournament(tournamentId: string, playerId: string) {
   const existing = await prisma.tournamentPlayer.findUnique({
     where: {
@@ -38,5 +40,5 @@ export async function joinTournament(tournamentId: string, playerId: string) {
   });
 
   revalidatePath(`/tournaments/detail?id=${tournamentId}`);
-  return { success: true };
+  return { success: true }; // ← FIXED
 }
