@@ -17,42 +17,32 @@ export default function TournamentRealtime({ initialPlayers, tournamentId }: Pro
   const [players, setPlayers] = useState<PlayerJoin[]>(initialPlayers);
 
   useEffect(() => {
-    // Check if authenticated
-    supabaseClient.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        console.log('Realtime: Not authenticated, skipping subscription');
-        return;
-      }
+    const channel = supabaseClient
+      .channel(`tournament-${tournamentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'TournamentPlayer',
+          filter: `tournamentId=eq.${tournamentId}`,
+        },
+        (payload) => {
+          const newRow = payload.new as { playerId: string };
+          console.log('Realtime INSERT:', newRow); // DEBUG
+          setPlayers((prev) => {
+            if (prev.some((p) => p.playerId === newRow.playerId)) return prev;
+            return [...prev, { playerId: newRow.playerId }];
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime status:', status);
+      });
 
-      console.log('Realtime: Subscribing as', user.id);
-
-      const channel = supabaseClient
-        .channel(`realtime-${tournamentId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'TournamentPlayer',
-            filter: `tournamentId=eq.${tournamentId}`,
-          },
-          (payload) => {
-            console.log('Realtime: Received INSERT payload', payload);
-            const newJoin = payload.new as { playerId: string };
-            setPlayers((prev) => {
-              if (prev.some((p) => p.playerId === newJoin.playerId)) return prev;
-              return [...prev, { playerId: newJoin.playerId }];
-            });
-          }
-        )
-        .subscribe((status) => {
-          console.log('Realtime: Status', status);
-        });
-
-      return () => {
-        supabaseClient.removeChannel(channel);
-      };
-    });
+    return () => {
+      supabaseClient.removeChannel(channel);
+    };
   }, [tournamentId]);
 
   return (
