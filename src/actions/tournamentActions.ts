@@ -24,7 +24,6 @@ export async function startTournament(tournamentId: string) {
 
 /* ---------- JOIN TOURNAMENT ---------- */
 // src/actions/tournamentActions.ts
-// src/actions/tournamentActions.ts
 export async function joinTournament(tournamentId: string, playerId: string) {
   const existing = await prisma.tournamentPlayer.findUnique({
     where: {

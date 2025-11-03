@@ -17,90 +17,66 @@ export default function TournamentActions({
   const router = useRouter();
 
   /* ---------- JOIN (client → triggers realtime) ---------- */
-  const handleJoin = async (tournamentId: string) => {
-  try {
-    const res = await fetch(`/api/tournaments/${tournamentId}/join`, {
+  const handleJoin = async () => {
+    if (!user) return;
+
+    // 1. Secure server-side insert
+    const res = await fetch('/api/join', {
       method: 'POST',
-      credentials: 'include', // important if using auth
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      body: JSON.stringify({
+        tournamentId: tournament.id,
+        playerId: user.id,
+      }),
+      headers: { 'Content-Type': 'application/json' },
     });
 
-    // DEBUG: Check status
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('Join failed:', res.status, errorText);
-      return;
-    }
-
-    // DEBUG: Get raw text
-    const text = await res.text();
-    if (!text) {
-      console.error('Empty response from server');
-      return;
-    }
-
-    // Now parse JSON safely
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      console.error('Invalid JSON received:', text);
-      return;
-    }
-
+    const data = await res.json();
     if (!data.success) {
-      console.error('Join failed:', data.message);
+      console.error('Server join failed:', data.message);
       return;
     }
 
-    alert('Joined successfully!');
-    // refresh tournament or update UI
+    // 2. Client-side insert → fires realtime event
+    const { error } = await supabaseClient
+      .from('TournamentPlayer')
+      .insert({
+        tournamentId: tournament.id,
+        playerId: user.id,
+      });
 
-  } catch (err) {
-    console.error('Network error:', err);
-  }
-};
+    if (error) {
+      console.error('Realtime insert failed:', error);
+      return;
+    }
+
+    router.refresh();
+  };
 
   /* ---------- START TOURNAMENT (unchanged) ---------- */
+  const handleStart = async () => {
+    await startTournament(tournament.id);
+    router.refresh();
+  };
+
   if (isAdmin && tournament.status === 'draft') {
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        startTournament(tournament.id);
-        router.refresh();
-      }}
-      className="mt-6"
-    >
-      <button className="px-6 py-3 bg-green-600 text-white rounded hover:bg-green-700">
-        Start Tournament
-      </button>
-    </form>
-  );
-}
+    return (
+      <form action={handleStart} className="mt-6">
+        <button className="px-6 py-3 bg-green-600 text-white rounded hover:bg-green-700">
+          Start Tournament
+        </button>
+      </form>
+    );
+  }
 
   if (!isAdmin && tournament.status === 'active') {
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const id = (e.currentTarget as HTMLFormElement).dataset.tournamentId;
-        if (id) handleJoin(id);
-      }}
-      data-tournament-id={tournament.id}
-      className="mt-6"
-    >
-      <button
-        type="submit"
-        className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
-      >
-        Join Tournament
-      </button>
-    </form>
-  );
-}
+    return (
+      <form action={handleJoin} className="mt-6">
+        <button className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700">
+          Join Tournament
+        </button>
+      </form>
+    );
+  }
 
   return null;
 }
