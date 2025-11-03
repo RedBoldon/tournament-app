@@ -25,6 +25,11 @@ export default async function TournamentPage({
 
   if (!tournament) return <p className="p-8">Tournament not found</p>;
 
+  // FIXED: Only one declaration
+  const playerList = tournament.players.map((tp) => ({
+    playerId: tp.player.id,
+  }));
+
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-4">{tournament.name}</h1>
@@ -33,18 +38,12 @@ export default async function TournamentPage({
       <p className="text-lg">Admin: <strong>{tournament.admin.email}</strong></p>
 
       <h2 className="text-xl font-semibold mt-8 mb-4">
-        Players ({tournament.players.length})
+        Players ({playerList.length})
       </h2>
-      <TournamentRealtime 
-  initialPlayers={tournament.players} 
-  tournamentId={id} 
-/>
-      
 
-      <TournamentActions
-        tournament={tournament}
-        isAdmin={false}
-      />
+      <TournamentRealtime initialPlayers={playerList} tournamentId={id} />
+
+      <TournamentActions tournament={tournament} isAdmin={false} />
     </div>
   );
 }
