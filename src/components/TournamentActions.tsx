@@ -3,29 +3,56 @@
 
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { startTournament, joinTournament } from '@/actions/tournamentActions'; // ← IMPORTED
+import { startTournament } from '@/actions/tournamentActions';
+import { supabaseClient } from '@/lib/supabase/client';
 
-export default function TournamentActions({ 
-  tournament, 
-  isAdmin 
-}: { 
-  tournament: any; 
+export default function TournamentActions({
+  tournament,
+  isAdmin,
+}: {
+  tournament: any;
   isAdmin: boolean;
 }) {
   const { user } = useAuth();
   const router = useRouter();
 
+  /* ---------- JOIN (client → triggers realtime) ---------- */
   const handleJoin = async () => {
     if (!user) return;
 
-    const formData = new FormData();
-    formData.append('tournamentId', tournament.id);
-    formData.append('playerId', user.id);
+    // 1. Secure server-side insert
+    const res = await fetch('/api/join', {
+      method: 'POST',
+      body: JSON.stringify({
+        tournamentId: tournament.id,
+        playerId: user.id,
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    });
 
-    await joinTournament(formData); // ← NOW DEFINED
+    const data = await res.json();
+    if (!data.success) {
+      console.error('Server join failed:', data.message);
+      return;
+    }
+
+    // 2. Client-side insert → fires realtime event
+    const { error } = await supabaseClient
+      .from('TournamentPlayer')
+      .insert({
+        tournamentId: tournament.id,
+        playerId: user.id,
+      });
+
+    if (error) {
+      console.error('Realtime insert failed:', error);
+      return;
+    }
+
     router.refresh();
   };
 
+  /* ---------- START TOURNAMENT (unchanged) ---------- */
   const handleStart = async () => {
     await startTournament(tournament.id);
     router.refresh();
