@@ -3,7 +3,7 @@
 
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { startTournament, joinTournament } from '@/actions/tournamentActions';
+import { startTournament, joinTournament } from '@/actions/tournamentActions'; // ← IMPORTED
 
 export default function TournamentActions({ 
   tournament, 
@@ -17,7 +17,12 @@ export default function TournamentActions({
 
   const handleJoin = async () => {
     if (!user) return;
-    await joinTournament(tournament.id, user.id);
+
+    const formData = new FormData();
+    formData.append('tournamentId', tournament.id);
+    formData.append('playerId', user.id);
+
+    await joinTournament(formData); // ← NOW DEFINED
     router.refresh();
   };
 
