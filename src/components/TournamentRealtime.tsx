@@ -28,11 +28,11 @@ export default function TournamentRealtime({ initialPlayers, tournamentId }: Pro
           filter: `tournamentId=eq.${tournamentId}`,
         },
         (payload) => {
-          const newJoin = payload.new as { playerId: string };
-          console.log('Realtime payload:', newJoin); // DEBUG
+          const newRow = payload.new as { playerId: string };
+          console.log('Realtime INSERT:', newRow); // DEBUG
           setPlayers((prev) => {
-            if (prev.some((p) => p.playerId === newJoin.playerId)) return prev;
-            return [...prev, { playerId: newJoin.playerId }];
+            if (prev.some((p) => p.playerId === newRow.playerId)) return prev;
+            return [...prev, { playerId: newRow.playerId }];
           });
         }
       )
