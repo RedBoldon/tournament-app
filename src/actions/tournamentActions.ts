@@ -23,17 +23,13 @@ export async function startTournament(tournamentId: string) {
 
 // src/actions/tournamentActions.ts
 export async function joinTournament(tournamentId: string, authUserId: string) {
-  console.log('joinTournament called', { tournamentId, authUserId }); // DEBUG
-
+  console.log('Join attempt:', { tournamentId, authUserId });
   // Find Player by authUserId
   const player = await prisma.player.findUnique({
     where: { id: authUserId },
   });
 
-  if (!player) {
-    console.log('Player not found');
-    return;
-  }
+  if (!player) return;
 
   console.log('Player found:', player.id);
 
@@ -46,12 +42,10 @@ export async function joinTournament(tournamentId: string, authUserId: string) {
     },
   });
 
-  if (existing) {
-    console.log('Already joined');
-    return;
-  }
+  if (existing) return;
 
-  console.log('Creating TournamentPlayer record');
+  console.log('Creating join record');
+
   await prisma.tournamentPlayer.create({
     data: {
       tournamentId,
@@ -59,6 +53,7 @@ export async function joinTournament(tournamentId: string, authUserId: string) {
     },
   });
 
-  console.log('TournamentPlayer created');
+  console.log('Join successful');
+
   revalidatePath(`/tournaments/detail?id=${tournamentId}`);
 }
