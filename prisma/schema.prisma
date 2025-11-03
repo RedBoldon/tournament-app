@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// === USER & AUTH ===
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("player") // "player" | "admin"
+  players   Player[]
+  adminOf     Tournament[] @relation("TournamentAdmin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// === PLAYER (1:1 with User) ===
+model Player {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  tournaments  TournamentPlayer[]
+  matchesAs1   Match[]  @relation("Player1")
+  matchesAs2   Match[]  @relation("Player2")
+  wins         Match[]  @relation("Winner")
+  createdAt    DateTime @default(now())
+}
+
+// === TOURNAMENT ===
+model Tournament {
+  id           String   @id @default(cuid())
+  name         String
+  type         String   @default("swiss")
+  rounds       Int      // e.g., 5
+  status       String   @default("draft") // draft, seeding, active, finished
+  admin        User     @relation("TournamentAdmin", fields: [adminId], references: [id])
+  adminId      String
+  players      TournamentPlayer[]
+  matches      Match[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// === JOIN TABLE: Tournament ↔ Player ===
+model TournamentPlayer {
+  id             String   @id @default(cuid())
+  tournament     Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId   String
+  player         Player   @relation(fields: [playerId], references: [id])
+  playerId       String
+  seed           Int?     // for Swiss pairing
+  points         Int      @default(0)
+  tiebreaker     Float    @default(0)
+  createdAt      DateTime @default(now())
+
+  @@unique([tournamentId, playerId])
+}
+
+// === MATCH ===
+model Match {
+  id            String   @id @default(cuid())
+  round         Int
+  player1       Player?  @relation("Player1", fields: [player1Id], references: [id])
+  player1Id     String?
+  player2       Player?  @relation("Player2", fields: [player2Id], references: [id])
+  player2Id     String?
+  winner        Player?  @relation("Winner", fields: [winnerId], references: [id])
+  winnerId      String?
+  score1        Int?
+  score2        Int?
+  startTime     DateTime?
+  tournament    Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId  String
+  createdAt     DateTime @default(now())
+}
